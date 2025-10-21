@@ -237,7 +237,7 @@ export default function JantecPortal() {
 <body>
     <div class="header">
         <div>
-            <h1 style="color:#FF3333;font-size:32px;">JANTEC</h1>
+            <img src="https://i.imgur.com/JShG1Uh.png" alt="JANTEC Logo" style="height:80px;width:auto;margin-bottom:10px;" />
             <div style="color:#666;font-size:14px;">
                 ${businessInfo.address || '123 Business Street'}<br>
                 ${businessInfo.phone || '(514) 555-0100'}<br>
