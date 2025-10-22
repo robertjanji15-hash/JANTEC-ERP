@@ -225,6 +225,11 @@ export default function JantecPortal() {
             border-bottom: 3px solid #FF3333;
             padding-bottom: 20px;
         }
+        .logo-img {
+            height: 80px;
+            width: auto;
+            margin-bottom: 10px;
+        }
         h1 {
             margin: 0 0 10px 0;
             color: #2D3047;
@@ -269,7 +274,8 @@ export default function JantecPortal() {
 <body>
     <div class="header">
         <div>
-            <img src="https://i.imgur.com/JShG1Uh.png" alt="JANTEC Logo" style="height:80px;width:auto;margin-bottom:10px;" />
+            <img src="https://i.imgur.com/JShG1Uh.png" alt="JANTEC Logo" class="logo-img" />
+            <div style="color:#333;font-size:16px;font-weight:bold;margin-bottom:5px;">${businessInfo.name || 'JANTEC'}</div>
             <div style="color:#666;font-size:14px;">
                 ${businessInfo.address || '123 Business Street'}<br>
                 ${businessInfo.phone || '(514) 555-0100'}<br>
@@ -415,7 +421,12 @@ export default function JantecPortal() {
                 </button>
               </div>
             </div>
-            <div className="p-8" dangerouslySetInnerHTML={{__html: generateInvoiceHTML(previewInvoice).replace('<!DOCTYPE html>', '').replace('<html>', '').replace('</html>', '').replace(/<head>[\s\S]*?<\/head>/, '')}} />
+            <div className="p-8">
+              <style dangerouslySetInnerHTML={{__html: `
+                .invoice-preview .logo-img { height: 80px !important; width: auto; margin-bottom: 10px; }
+              `}} />
+              <div className="invoice-preview" dangerouslySetInnerHTML={{__html: generateInvoiceHTML(previewInvoice).replace('<!DOCTYPE html>', '').replace('<html>', '').replace('</html>', '').replace(/<head>[\s\S]*?<\/head>/, '')}} />
+            </div>
           </div>
         </div>
       )}
@@ -519,7 +530,7 @@ export default function JantecPortal() {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Customer Directory</h2>
-              <button onClick={()=>{setEditingCustomer(null);setCustomerForm({name:'',email:'',phone:'',address:'',city:'',province:'',postalCode:''});setShowCustomerForm(true);}} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center space-x-2">
+              <button onClick={()=>{setEditingCustomer(null);setCustomerForm({name:'',email:'',phone:'',address:'',city:'',province:'',postalCode:'',shipToAddress:'',shipToCity:'',shipToProvince:'',shipToPostalCode:'',shipToEmail:'',shipToPhone:'',sameAsBilling:false});setShowCustomerForm(true);}} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center space-x-2">
                 <Plus size={20}/><span>Add Customer</span>
               </button>
             </div>
