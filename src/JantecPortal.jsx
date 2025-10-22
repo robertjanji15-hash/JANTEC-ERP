@@ -20,7 +20,7 @@ export default function JantecPortal() {
 
   const [businessInfo, setBusinessInfo] = useState({ name: 'JANTEC', address: '', phone: '', email: '' });
   const [productForm, setProductForm] = useState({ name: '', category: 'Sports & Outdoor', description: '', price: '', sku: '' });
-  const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '' });
+  const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '', shipToAddress: '', shipToCity: '', shipToProvince: '', shipToPostalCode: '', shipToEmail: '', shipToPhone: '', sameAsBilling: false });
   const [orderForm, setOrderForm] = useState({ customerId: '', items: [], notes: '' });
   const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '' });
   const [invoiceSettings, setInvoiceSettings] = useState({ orderId: null, taxRate: '14.975', paymentTerms: 'Net 30' });
@@ -81,6 +81,32 @@ export default function JantecPortal() {
     setShowProductForm(false);
   };
 
+  const handleSameAsBilling = (checked) => {
+    if (checked) {
+      setCustomerForm({
+        ...customerForm,
+        sameAsBilling: true,
+        shipToAddress: customerForm.address,
+        shipToCity: customerForm.city,
+        shipToProvince: customerForm.province,
+        shipToPostalCode: customerForm.postalCode,
+        shipToEmail: customerForm.email,
+        shipToPhone: customerForm.phone
+      });
+    } else {
+      setCustomerForm({
+        ...customerForm,
+        sameAsBilling: false,
+        shipToAddress: '',
+        shipToCity: '',
+        shipToProvince: '',
+        shipToPostalCode: '',
+        shipToEmail: '',
+        shipToPhone: ''
+      });
+    }
+  };
+
   const handleAddCustomer = () => {
     if (!customerForm.name || !customerForm.email) {
       alert('Please fill in all required fields (Name, Email)');
@@ -93,7 +119,7 @@ export default function JantecPortal() {
     } else {
       setCustomers([...customers, { ...customerForm, id: Date.now() }]);
     }
-    setCustomerForm({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '' });
+    setCustomerForm({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '', shipToAddress: '', shipToCity: '', shipToProvince: '', shipToPostalCode: '', shipToEmail: '', shipToPhone: '', sameAsBilling: false });
     setShowCustomerForm(false);
   };
 
@@ -139,6 +165,12 @@ export default function JantecPortal() {
 
   const releaseOrder = (orderId) => {
     setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'Released' } : o));
+  };
+
+  const deleteOrder = (orderId) => {
+    if (window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+      setOrders(orders.filter(o => o.id !== orderId));
+    }
   };
 
   const confirmGenerateInvoice = () => {
@@ -255,13 +287,26 @@ export default function JantecPortal() {
         </div>
     </div>
 
-    <div style="margin-bottom:40px;padding:15px;background-color:#f9f9f9;border-left:4px solid #FF3333;">
-        <div style="font-weight:bold;margin-bottom:10px;font-size:16px;">BILL TO:</div>
-        <div style="font-size:15px;"><strong>${invoice.customer.name}</strong></div>
-        <div>${invoice.customer.address}</div>
-        <div>${invoice.customer.city}, ${invoice.customer.province} ${invoice.customer.postalCode}</div>
-        <div style="margin-top:5px;">Email: ${invoice.customer.email}</div>
-        <div>Phone: ${invoice.customer.phone}</div>
+    <div style="display:flex;gap:20px;margin-bottom:40px;">
+        <div style="flex:1;padding:15px;background-color:#f9f9f9;border-left:4px solid #FF3333;">
+            <div style="font-weight:bold;margin-bottom:10px;font-size:16px;">BILL TO:</div>
+            <div style="font-size:15px;"><strong>${invoice.customer.name}</strong></div>
+            <div>${invoice.customer.address}</div>
+            <div>${invoice.customer.city}, ${invoice.customer.province} ${invoice.customer.postalCode}</div>
+            <div style="margin-top:5px;">Email: ${invoice.customer.email}</div>
+            <div>Phone: ${invoice.customer.phone}</div>
+        </div>
+
+        ${invoice.customer.shipToAddress ? `
+        <div style="flex:1;padding:15px;background-color:#fffbf0;border-left:4px solid #4CAF50;">
+            <div style="font-weight:bold;margin-bottom:10px;font-size:16px;">SHIP TO:</div>
+            <div style="font-size:15px;"><strong>${invoice.customer.name}</strong></div>
+            <div>${invoice.customer.shipToAddress}</div>
+            <div>${invoice.customer.shipToCity}, ${invoice.customer.shipToProvince} ${invoice.customer.shipToPostalCode}</div>
+            ${invoice.customer.shipToEmail ? `<div style="margin-top:5px;">Email: ${invoice.customer.shipToEmail}</div>` : ''}
+            ${invoice.customer.shipToPhone ? `<div>Phone: ${invoice.customer.shipToPhone}</div>` : ''}
+        </div>
+        ` : '<div style="flex:1;"></div>'}
     </div>
 
     <table>
@@ -486,10 +531,24 @@ export default function JantecPortal() {
                   <div><label className="block text-sm font-medium mb-2">Customer Name *</label><input type="text" value={customerForm.name} onChange={(e)=>setCustomerForm({...customerForm,name:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="John Doe"/></div>
                   <div><label className="block text-sm font-medium mb-2">Email *</label><input type="email" value={customerForm.email} onChange={(e)=>setCustomerForm({...customerForm,email:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="john@example.com"/></div>
                   <div><label className="block text-sm font-medium mb-2">Phone</label><input type="tel" value={customerForm.phone} onChange={(e)=>setCustomerForm({...customerForm,phone:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="(514) 555-0100"/></div>
+                  <div className="col-span-2"><h4 className="font-semibold text-lg mt-4 mb-2 text-gray-700 border-b pb-2">Billing Address</h4></div>
                   <div><label className="block text-sm font-medium mb-2">Address</label><input type="text" value={customerForm.address} onChange={(e)=>setCustomerForm({...customerForm,address:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="123 Main St"/></div>
                   <div><label className="block text-sm font-medium mb-2">City</label><input type="text" value={customerForm.city} onChange={(e)=>setCustomerForm({...customerForm,city:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="Montreal"/></div>
                   <div><label className="block text-sm font-medium mb-2">Province</label><input type="text" value={customerForm.province} onChange={(e)=>setCustomerForm({...customerForm,province:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="QC"/></div>
                   <div><label className="block text-sm font-medium mb-2">Postal Code</label><input type="text" value={customerForm.postalCode} onChange={(e)=>setCustomerForm({...customerForm,postalCode:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="H1A 1A1"/></div>
+                  <div className="col-span-2"><h4 className="font-semibold text-lg mt-4 mb-2 text-gray-700 border-b pb-2">Shipping Address</h4></div>
+                  <div className="col-span-2">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input type="checkbox" checked={customerForm.sameAsBilling} onChange={(e)=>handleSameAsBilling(e.target.checked)} className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"/>
+                      <span className="text-sm font-medium text-gray-700">Shipping address is the same as billing address</span>
+                    </label>
+                  </div>
+                  <div><label className="block text-sm font-medium mb-2">Ship To Address</label><input type="text" value={customerForm.shipToAddress} onChange={(e)=>setCustomerForm({...customerForm,shipToAddress:e.target.value})} disabled={customerForm.sameAsBilling} className="w-full px-3 py-2 border rounded disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="456 Delivery Ave"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Ship To City</label><input type="text" value={customerForm.shipToCity} onChange={(e)=>setCustomerForm({...customerForm,shipToCity:e.target.value})} disabled={customerForm.sameAsBilling} className="w-full px-3 py-2 border rounded disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="Montreal"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Ship To Province</label><input type="text" value={customerForm.shipToProvince} onChange={(e)=>setCustomerForm({...customerForm,shipToProvince:e.target.value})} disabled={customerForm.sameAsBilling} className="w-full px-3 py-2 border rounded disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="QC"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Ship To Postal Code</label><input type="text" value={customerForm.shipToPostalCode} onChange={(e)=>setCustomerForm({...customerForm,shipToPostalCode:e.target.value})} disabled={customerForm.sameAsBilling} className="w-full px-3 py-2 border rounded disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="H2B 2B2"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Ship To Email</label><input type="email" value={customerForm.shipToEmail} onChange={(e)=>setCustomerForm({...customerForm,shipToEmail:e.target.value})} disabled={customerForm.sameAsBilling} className="w-full px-3 py-2 border rounded disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="shipping@example.com"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Ship To Phone</label><input type="tel" value={customerForm.shipToPhone} onChange={(e)=>setCustomerForm({...customerForm,shipToPhone:e.target.value})} disabled={customerForm.sameAsBilling} className="w-full px-3 py-2 border rounded disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="(514) 555-0200"/></div>
                 </div>
                 <div className="flex space-x-3 mt-4">
                   <button onClick={handleAddCustomer} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded">{editingCustomer?'Update':'Add'} Customer</button>
@@ -663,19 +722,32 @@ export default function JantecPortal() {
                                 <button onClick={()=>releaseOrder(order.id)} className="text-green-600 hover:text-green-800" title="Release Order">
                                   <CheckCircle size={18}/>
                                 </button>
+                                <button onClick={()=>deleteOrder(order.id)} className="text-red-600 hover:text-red-800" title="Delete Order">
+                                  <Trash2 size={18}/>
+                                </button>
                               </>
                             )}
                             {order.status==='Released' && (
-                              <button onClick={()=>{setInvoiceSettings({orderId:order.id,taxRate:'14.975',paymentTerms:'Net 30'});setShowInvoiceSettings(true);}} className="text-purple-600 hover:text-purple-800 flex items-center space-x-1" title="Generate Invoice">
-                                <FileText size={18}/>
-                                <span className="text-sm">Invoice</span>
-                              </button>
+                              <>
+                                <button onClick={()=>{setInvoiceSettings({orderId:order.id,taxRate:'14.975',paymentTerms:'Net 30'});setShowInvoiceSettings(true);}} className="text-purple-600 hover:text-purple-800 flex items-center space-x-1" title="Generate Invoice">
+                                  <FileText size={18}/>
+                                  <span className="text-sm">Invoice</span>
+                                </button>
+                                <button onClick={()=>deleteOrder(order.id)} className="text-red-600 hover:text-red-800" title="Delete Order">
+                                  <Trash2 size={18}/>
+                                </button>
+                              </>
                             )}
                             {order.status==='Invoiced' && order.invoiceId && (
-                              <button onClick={()=>{const invoice=invoices.find(inv=>inv.id===order.invoiceId);if(invoice)viewInvoice(invoice);}} className="text-blue-600 hover:text-blue-800 flex items-center space-x-1" title="View Invoice">
-                                <Eye size={18}/>
-                                <span className="text-sm">View</span>
-                              </button>
+                              <>
+                                <button onClick={()=>{const invoice=invoices.find(inv=>inv.id===order.invoiceId);if(invoice)viewInvoice(invoice);}} className="text-blue-600 hover:text-blue-800 flex items-center space-x-1" title="View Invoice">
+                                  <Eye size={18}/>
+                                  <span className="text-sm">View</span>
+                                </button>
+                                <button onClick={()=>deleteOrder(order.id)} className="text-red-600 hover:text-red-800" title="Delete Order">
+                                  <Trash2 size={18}/>
+                                </button>
+                              </>
                             )}
                           </div>
                         </td>
