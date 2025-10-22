@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, FileText, Users, Package, Download, ShoppingCart, CheckCircle, Eye } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
 
 export default function JantecPortal() {
   const [activeTab, setActiveTab] = useState('products');
@@ -200,13 +201,24 @@ export default function JantecPortal() {
     setShowInvoicePreview(true);
   };
 
-  const copyInvoiceHTML = (invoice) => {
+  const downloadInvoicePDF = (invoice) => {
     const html = generateInvoiceHTML(invoice);
-    navigator.clipboard.writeText(html).then(() => {
-      alert('Invoice HTML copied to clipboard!\n\nTo create PDF:\n1. Paste into a text editor\n2. Save as invoice.html\n3. Open in browser\n4. Press Ctrl+P (or Cmd+P)\n5. Select "Save as PDF"');
-    }).catch(() => {
-      alert('Could not copy to clipboard. Please use the View button to see and manually copy the HTML.');
-    });
+
+    // Create a temporary container
+    const element = document.createElement('div');
+    element.innerHTML = html;
+
+    // Configure PDF options
+    const options = {
+      margin: 0.5,
+      filename: `${invoice.invoiceNumber}_${invoice.customer.name.replace(/\s+/g, '_')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    // Generate and download PDF
+    html2pdf().set(options).from(element).save();
   };
 
   const generateInvoiceHTML = (invoice) => {
@@ -419,8 +431,9 @@ export default function JantecPortal() {
             <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
               <h3 className="text-xl font-semibold">Invoice Preview - {previewInvoice.invoiceNumber}</h3>
               <div className="flex space-x-2">
-                <button onClick={() => copyInvoiceHTML(previewInvoice)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
-                  Copy HTML
+                <button onClick={() => downloadInvoicePDF(previewInvoice)} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm flex items-center space-x-2">
+                  <Download size={16}/>
+                  <span>Download PDF</span>
                 </button>
                 <button onClick={() => setShowInvoicePreview(false)} className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm">
                   Close
@@ -817,9 +830,9 @@ export default function JantecPortal() {
                               <Eye size={18}/>
                               <span className="text-sm">View</span>
                             </button>
-                            <button onClick={()=>copyInvoiceHTML(invoice)} className="text-green-600 hover:text-green-800 flex items-center space-x-1" title="Copy HTML">
+                            <button onClick={()=>downloadInvoicePDF(invoice)} className="text-red-600 hover:text-red-800 flex items-center space-x-1" title="Download PDF">
                               <Download size={18}/>
-                              <span className="text-sm">Copy</span>
+                              <span className="text-sm">PDF</span>
                             </button>
                           </div>
                         </td>
