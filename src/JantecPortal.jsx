@@ -169,7 +169,13 @@ export default function JantecPortal() {
 
   const deleteOrder = (orderId) => {
     if (window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+      const order = orders.find(o => o.id === orderId);
       setOrders(orders.filter(o => o.id !== orderId));
+
+      // If the order has an associated invoice, delete it too
+      if (order && order.invoiceId) {
+        setInvoices(invoices.filter(inv => inv.id !== order.invoiceId));
+      }
     }
   };
 
