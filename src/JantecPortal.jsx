@@ -388,7 +388,7 @@ export default function JantecPortal() {
     </div>
     ` : ''}
 
-    <div style="margin-top:80px;text-align:center;color:#999;font-size:12px;border-top:1px solid #ddd;padding-top:20px;">
+    <div style="margin-top:30px;text-align:center;color:#999;font-size:12px;border-top:1px solid #ddd;padding-top:20px;">
         Thank you for your business! | JANTEC Distribution
     </div>
 </body>
