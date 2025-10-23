@@ -268,6 +268,8 @@ export default function JantecPortal() {
         h1 {
             margin: 0 0 10px 0;
             color: #2D3047;
+            font-size: 36px;
+            font-weight: bold;
         }
         table {
             width: 100%;
