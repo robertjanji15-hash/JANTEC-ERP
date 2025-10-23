@@ -384,13 +384,13 @@ export default function JantecPortal() {
     </div>
 
     ${invoice.notes ? `
-    <div style="margin-top:50px;padding:15px;background-color:#fffbf0;border:1px solid #e0e0e0;">
+    <div style="margin-top:30px;padding:15px;background-color:#fffbf0;border:1px solid #e0e0e0;">
         <strong>NOTES:</strong><br>
         <div style="margin-top:8px;">${invoice.notes}</div>
     </div>
     ` : ''}
 
-    <div style="margin-top:30px;text-align:center;color:#999;font-size:12px;border-top:1px solid #ddd;padding-top:20px;">
+    <div style="margin-top:15px;text-align:center;color:#999;font-size:12px;border-top:1px solid #ddd;padding-top:15px;padding-bottom:20px;">
         Thank you for your business! | JANTEC Distribution
     </div>
 </body>
