@@ -24,7 +24,7 @@ export default function JantecPortal() {
   const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '', shipToAddress: '', shipToCity: '', shipToProvince: '', shipToPostalCode: '', shipToEmail: '', shipToPhone: '', sameAsBilling: false });
   const [orderForm, setOrderForm] = useState({ customerId: '', items: [], notes: '' });
   const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '' });
-  const [invoiceSettings, setInvoiceSettings] = useState({ orderId: null, taxRate: '14.975', paymentTerms: 'Net 30' });
+  const [invoiceSettings, setInvoiceSettings] = useState({ orderId: null, taxRate: '13', paymentTerms: 'Net 30' });
 
   // Load data from localStorage on startup
   useEffect(() => {
@@ -301,9 +301,32 @@ export default function JantecPortal() {
             padding-top: 10px;
             border-top: 2px solid #ddd;
         }
+        .header {
+            page-break-inside: avoid;
+            page-break-after: avoid;
+        }
+        .customer-info {
+            page-break-inside: avoid;
+        }
+        table {
+            page-break-inside: auto;
+        }
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        thead {
+            display: table-header-group;
+        }
+        .total-section {
+            page-break-inside: avoid;
+        }
         @media print {
             @page {
                 margin: 0.5in;
+            }
+            body {
+                padding: 0;
             }
         }
     </style>
@@ -330,7 +353,7 @@ export default function JantecPortal() {
         </div>
     </div>
 
-    <div style="display:flex;gap:20px;margin-bottom:40px;">
+    <div class="customer-info" style="display:flex;gap:20px;margin-bottom:40px;">
         <div style="flex:1;padding:15px;background-color:#f9f9f9;border-left:4px solid #FF3333;">
             <div style="font-weight:bold;margin-bottom:10px;font-size:16px;">BILL TO:</div>
             <div style="font-size:15px;"><strong>${invoice.customer.name}</strong></div>
@@ -778,7 +801,7 @@ export default function JantecPortal() {
                             )}
                             {order.status==='Released' && (
                               <>
-                                <button onClick={()=>{setInvoiceSettings({orderId:order.id,taxRate:'14.975',paymentTerms:'Net 30'});setShowInvoiceSettings(true);}} className="text-purple-600 hover:text-purple-800 flex items-center space-x-1" title="Generate Invoice">
+                                <button onClick={()=>{setInvoiceSettings({orderId:order.id,taxRate:'13',paymentTerms:'Net 30'});setShowInvoiceSettings(true);}} className="text-purple-600 hover:text-purple-800 flex items-center space-x-1" title="Generate Invoice">
                                   <FileText size={18}/>
                                   <span className="text-sm">Invoice</span>
                                 </button>
