@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, FileText, Users, Package, Download, ShoppingCart, CheckCircle, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, Users, Package, Download, ShoppingCart, CheckCircle, Eye, Truck, TrendingUp } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 
 export default function JantecPortal() {
@@ -8,22 +8,31 @@ export default function JantecPortal() {
   const [customers, setCustomers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
   const [showInvoiceSettings, setShowInvoiceSettings] = useState(false);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [showSupplierForm, setShowSupplierForm] = useState(false);
+  const [showPurchaseOrderForm, setShowPurchaseOrderForm] = useState(false);
   const [previewInvoice, setPreviewInvoice] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [editingOrder, setEditingOrder] = useState(null);
+  const [editingSupplier, setEditingSupplier] = useState(null);
+  const [editingPurchaseOrder, setEditingPurchaseOrder] = useState(null);
 
   const [businessInfo, setBusinessInfo] = useState({ name: 'JANTEC', address: '', phone: '', email: '' });
-  const [productForm, setProductForm] = useState({ name: '', category: 'Sports & Outdoor', description: '', price: '', sku: '' });
+  const [productForm, setProductForm] = useState({ name: '', category: 'Sports & Outdoor', description: '', price: '', sku: '', quantity: '0', reorderLevel: '10' });
   const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '', shipToAddress: '', shipToCity: '', shipToProvince: '', shipToPostalCode: '', shipToEmail: '', shipToPhone: '', sameAsBilling: false });
   const [orderForm, setOrderForm] = useState({ customerId: '', items: [], notes: '' });
+  const [supplierForm, setSupplierForm] = useState({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '', contactPerson: '' });
+  const [purchaseOrderForm, setPurchaseOrderForm] = useState({ supplierId: '', items: [], notes: '', expectedDate: '' });
   const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '' });
+  const [currentPOItem, setCurrentPOItem] = useState({ productId: '', quantity: '', cost: '' });
   const [invoiceSettings, setInvoiceSettings] = useState({ orderId: null, taxRate: '13', paymentTerms: 'Net 30' });
 
   // Load data from localStorage on startup
@@ -32,12 +41,16 @@ export default function JantecPortal() {
     const savedCustomers = localStorage.getItem('jantec-customers');
     const savedOrders = localStorage.getItem('jantec-orders');
     const savedInvoices = localStorage.getItem('jantec-invoices');
+    const savedSuppliers = localStorage.getItem('jantec-suppliers');
+    const savedPurchaseOrders = localStorage.getItem('jantec-purchase-orders');
     const savedBusiness = localStorage.getItem('jantec-business');
 
     if (savedProducts) setProducts(JSON.parse(savedProducts));
     if (savedCustomers) setCustomers(JSON.parse(savedCustomers));
     if (savedOrders) setOrders(JSON.parse(savedOrders));
     if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
+    if (savedSuppliers) setSuppliers(JSON.parse(savedSuppliers));
+    if (savedPurchaseOrders) setPurchaseOrders(JSON.parse(savedPurchaseOrders));
     if (savedBusiness) setBusinessInfo(JSON.parse(savedBusiness));
   }, []);
 
@@ -59,6 +72,14 @@ export default function JantecPortal() {
   }, [invoices]);
 
   useEffect(() => {
+    localStorage.setItem('jantec-suppliers', JSON.stringify(suppliers));
+  }, [suppliers]);
+
+  useEffect(() => {
+    localStorage.setItem('jantec-purchase-orders', JSON.stringify(purchaseOrders));
+  }, [purchaseOrders]);
+
+  useEffect(() => {
     localStorage.setItem('jantec-business', JSON.stringify(businessInfo));
   }, [businessInfo]);
 
@@ -69,8 +90,8 @@ export default function JantecPortal() {
     }
 
     const newProduct = editingProduct
-      ? { ...productForm, id: editingProduct.id }
-      : { ...productForm, id: Date.now() };
+      ? { ...productForm, id: editingProduct.id, quantity: parseInt(productForm.quantity) || 0, reorderLevel: parseInt(productForm.reorderLevel) || 10 }
+      : { ...productForm, id: Date.now(), quantity: parseInt(productForm.quantity) || 0, reorderLevel: parseInt(productForm.reorderLevel) || 10 };
 
     if (editingProduct) {
       setProducts(products.map(p => p.id === editingProduct.id ? newProduct : p));
@@ -78,7 +99,7 @@ export default function JantecPortal() {
     } else {
       setProducts([...products, newProduct]);
     }
-    setProductForm({ name: '', category: 'Sports & Outdoor', description: '', price: '', sku: '' });
+    setProductForm({ name: '', category: 'Sports & Outdoor', description: '', price: '', sku: '', quantity: '0', reorderLevel: '10' });
     setShowProductForm(false);
   };
 
@@ -127,9 +148,17 @@ export default function JantecPortal() {
   const handleAddItemToOrder = () => {
     if (currentItem.productId && currentItem.quantity) {
       const product = products.find(p => p.id === parseInt(currentItem.productId));
+      const requestedQty = parseInt(currentItem.quantity);
+
+      // Check if enough inventory is available
+      if (product.quantity < requestedQty) {
+        alert(`Insufficient inventory! Only ${product.quantity} units available.`);
+        return;
+      }
+
       setOrderForm({
         ...orderForm,
-        items: [...orderForm.items, { ...product, quantity: parseInt(currentItem.quantity), total: parseFloat(product.price) * parseInt(currentItem.quantity) }]
+        items: [...orderForm.items, { ...product, quantity: requestedQty, total: parseFloat(product.price) * requestedQty }]
       });
       setCurrentItem({ productId: '', quantity: '' });
     }
@@ -138,6 +167,17 @@ export default function JantecPortal() {
   const createOrder = () => {
     const customer = customers.find(c => c.id === parseInt(orderForm.customerId));
     const subtotal = orderForm.items.reduce((sum, item) => sum + item.total, 0);
+
+    // Reduce inventory for each ordered item
+    const updatedProducts = products.map(p => {
+      const orderedItem = orderForm.items.find(item => item.id === p.id);
+      if (orderedItem) {
+        return { ...p, quantity: p.quantity - orderedItem.quantity };
+      }
+      return p;
+    });
+    setProducts(updatedProducts);
+
     const order = {
       id: Date.now(), orderNumber: `ORD-${Date.now()}`, date: new Date().toLocaleDateString(),
       customer, items: orderForm.items, subtotal, status: 'Pending', notes: orderForm.notes, invoiceId: null
@@ -177,6 +217,114 @@ export default function JantecPortal() {
       if (order && order.invoiceId) {
         setInvoices(invoices.filter(inv => inv.id !== order.invoiceId));
       }
+    }
+  };
+
+  // Supplier management functions
+  const handleAddSupplier = () => {
+    if (!supplierForm.name || !supplierForm.email) {
+      alert('Please fill in all required fields (Name, Email)');
+      return;
+    }
+
+    if (editingSupplier) {
+      setSuppliers(suppliers.map(s => s.id === editingSupplier.id ? { ...supplierForm, id: s.id } : s));
+      setEditingSupplier(null);
+    } else {
+      setSuppliers([...suppliers, { ...supplierForm, id: Date.now() }]);
+    }
+    setSupplierForm({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '', contactPerson: '' });
+    setShowSupplierForm(false);
+  };
+
+  // Purchase order functions
+  const handleAddItemToPO = () => {
+    if (currentPOItem.productId && currentPOItem.quantity && currentPOItem.cost) {
+      const product = products.find(p => p.id === parseInt(currentPOItem.productId));
+      setPurchaseOrderForm({
+        ...purchaseOrderForm,
+        items: [...purchaseOrderForm.items, {
+          ...product,
+          quantity: parseInt(currentPOItem.quantity),
+          cost: parseFloat(currentPOItem.cost),
+          total: parseFloat(currentPOItem.cost) * parseInt(currentPOItem.quantity)
+        }]
+      });
+      setCurrentPOItem({ productId: '', quantity: '', cost: '' });
+    }
+  };
+
+  const createPurchaseOrder = () => {
+    const supplier = suppliers.find(s => s.id === parseInt(purchaseOrderForm.supplierId));
+    const total = purchaseOrderForm.items.reduce((sum, item) => sum + item.total, 0);
+    const po = {
+      id: Date.now(),
+      poNumber: `PO-${Date.now()}`,
+      date: new Date().toLocaleDateString(),
+      supplier,
+      items: purchaseOrderForm.items,
+      total,
+      status: 'Pending',
+      notes: purchaseOrderForm.notes,
+      expectedDate: purchaseOrderForm.expectedDate
+    };
+    setPurchaseOrders([...purchaseOrders, po]);
+    setPurchaseOrderForm({ supplierId: '', items: [], notes: '', expectedDate: '' });
+    setShowPurchaseOrderForm(false);
+    setActiveTab('suppliers');
+  };
+
+  const updatePurchaseOrder = () => {
+    const supplier = suppliers.find(s => s.id === parseInt(purchaseOrderForm.supplierId));
+    const total = purchaseOrderForm.items.reduce((sum, item) => sum + item.total, 0);
+    setPurchaseOrders(purchaseOrders.map(po =>
+      po.id === editingPurchaseOrder.id
+        ? { ...po, supplier, items: purchaseOrderForm.items, total, notes: purchaseOrderForm.notes, expectedDate: purchaseOrderForm.expectedDate }
+        : po
+    ));
+    setEditingPurchaseOrder(null);
+    setPurchaseOrderForm({ supplierId: '', items: [], notes: '', expectedDate: '' });
+    setShowPurchaseOrderForm(false);
+  };
+
+  const handleEditPurchaseOrder = (po) => {
+    if (po.status === 'Received') {
+      alert('Cannot edit a received purchase order.');
+      return;
+    }
+    setEditingPurchaseOrder(po);
+    setPurchaseOrderForm({
+      supplierId: po.supplier.id.toString(),
+      items: po.items,
+      notes: po.notes,
+      expectedDate: po.expectedDate
+    });
+    setShowPurchaseOrderForm(true);
+  };
+
+  const receivePurchaseOrder = (poId) => {
+    const po = purchaseOrders.find(p => p.id === poId);
+    if (!po || po.status !== 'Pending') return;
+
+    // Update inventory for each received item
+    const updatedProducts = products.map(p => {
+      const receivedItem = po.items.find(item => item.id === p.id);
+      if (receivedItem) {
+        return { ...p, quantity: p.quantity + receivedItem.quantity };
+      }
+      return p;
+    });
+    setProducts(updatedProducts);
+
+    // Mark PO as received
+    setPurchaseOrders(purchaseOrders.map(p => p.id === poId ? { ...p, status: 'Received', receivedDate: new Date().toLocaleDateString() } : p));
+
+    alert('Purchase order received! Inventory has been updated.');
+  };
+
+  const deletePurchaseOrder = (poId) => {
+    if (window.confirm('Are you sure you want to delete this purchase order? This action cannot be undone.')) {
+      setPurchaseOrders(purchaseOrders.filter(po => po.id !== poId));
     }
   };
 
@@ -441,7 +589,7 @@ export default function JantecPortal() {
               </div>
               <div>
                 <p className="text-gray-400 text-sm">Distribution Portal</p>
-                <p className="text-gray-500 text-xs">Products: {products.length} | Customers: {customers.length} | Orders: {orders.length}</p>
+                <p className="text-gray-500 text-xs">Products: {products.length} | Customers: {customers.length} | Orders: {orders.length} | Suppliers: {suppliers.length}</p>
               </div>
             </div>
             <button onClick={() => setShowBusinessForm(true)} className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">Settings</button>
@@ -513,6 +661,7 @@ export default function JantecPortal() {
           <div className="flex space-x-1">
             <button onClick={()=>setActiveTab('products')} className={`flex items-center space-x-2 px-6 py-4 font-medium ${activeTab==='products'?'text-red-600 border-b-2 border-red-600':'text-gray-600'}`}><Package size={20}/><span>Products</span></button>
             <button onClick={()=>setActiveTab('customers')} className={`flex items-center space-x-2 px-6 py-4 font-medium ${activeTab==='customers'?'text-red-600 border-b-2 border-red-600':'text-gray-600'}`}><Users size={20}/><span>Customers</span></button>
+            <button onClick={()=>setActiveTab('suppliers')} className={`flex items-center space-x-2 px-6 py-4 font-medium ${activeTab==='suppliers'?'text-red-600 border-b-2 border-red-600':'text-gray-600'}`}><Truck size={20}/><span>Suppliers</span></button>
             <button onClick={()=>setActiveTab('orders')} className={`flex items-center space-x-2 px-6 py-4 font-medium ${activeTab==='orders'?'text-red-600 border-b-2 border-red-600':'text-gray-600'}`}><ShoppingCart size={20}/><span>Orders</span></button>
             <button onClick={()=>setActiveTab('invoices')} className={`flex items-center space-x-2 px-6 py-4 font-medium ${activeTab==='invoices'?'text-red-600 border-b-2 border-red-600':'text-gray-600'}`}><FileText size={20}/><span>Invoices</span></button>
           </div>
@@ -524,7 +673,7 @@ export default function JantecPortal() {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Product Catalog</h2>
-              <button onClick={()=>{setEditingProduct(null);setProductForm({name:'',category:'Sports & Outdoor',description:'',price:'',sku:''});setShowProductForm(true);}} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center space-x-2">
+              <button onClick={()=>{setEditingProduct(null);setProductForm({name:'',category:'Sports & Outdoor',description:'',price:'',sku:'',quantity:'0',reorderLevel:'10'});setShowProductForm(true);}} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center space-x-2">
                 <Plus size={20}/><span>Add Product</span>
               </button>
             </div>
@@ -537,6 +686,8 @@ export default function JantecPortal() {
                   <div><label className="block text-sm font-medium mb-2">Category</label><select value={productForm.category} onChange={(e)=>setProductForm({...productForm,category:e.target.value})} className="w-full px-3 py-2 border rounded"><option>Sports & Outdoor</option><option>Tools</option><option>Automobile Accessories</option></select></div>
                   <div><label className="block text-sm font-medium mb-2">SKU *</label><input type="text" value={productForm.sku} onChange={(e)=>setProductForm({...productForm,sku:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="e.g., MB-001"/></div>
                   <div><label className="block text-sm font-medium mb-2">Price ($) *</label><input type="number" step="0.01" value={productForm.price} onChange={(e)=>setProductForm({...productForm,price:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="0.00"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Current Stock</label><input type="number" value={productForm.quantity} onChange={(e)=>setProductForm({...productForm,quantity:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="0"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Reorder Level</label><input type="number" value={productForm.reorderLevel} onChange={(e)=>setProductForm({...productForm,reorderLevel:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="10"/></div>
                   <div className="col-span-2"><label className="block text-sm font-medium mb-2">Description</label><textarea value={productForm.description} onChange={(e)=>setProductForm({...productForm,description:e.target.value})} className="w-full px-3 py-2 border rounded" rows="3" placeholder="Product description..."/></div>
                 </div>
                 <div className="flex space-x-3 mt-4">
@@ -561,6 +712,8 @@ export default function JantecPortal() {
                       <th className="px-6 py-3 text-left">Category</th>
                       <th className="px-6 py-3 text-left">Description</th>
                       <th className="px-6 py-3 text-left">Price</th>
+                      <th className="px-6 py-3 text-left">Stock</th>
+                      <th className="px-6 py-3 text-left">Reorder</th>
                       <th className="px-6 py-3 text-left">Actions</th>
                     </tr>
                   </thead>
@@ -573,8 +726,14 @@ export default function JantecPortal() {
                         <td className="px-6 py-4 text-sm">{product.description}</td>
                         <td className="px-6 py-4">${parseFloat(product.price).toFixed(2)}</td>
                         <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded text-sm font-semibold ${(product.quantity || 0) <= (product.reorderLevel || 10) ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                            {product.quantity || 0}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{product.reorderLevel || 10}</td>
+                        <td className="px-6 py-4">
                           <div className="flex space-x-2">
-                            <button onClick={()=>{setEditingProduct(product);setProductForm(product);setShowProductForm(true);}} className="text-blue-600 hover:text-blue-800"><Edit2 size={18}/></button>
+                            <button onClick={()=>{setEditingProduct(product);setProductForm({...product, quantity: product.quantity?.toString() || '0', reorderLevel: product.reorderLevel?.toString() || '10'});setShowProductForm(true);}} className="text-blue-600 hover:text-blue-800"><Edit2 size={18}/></button>
                             <button onClick={()=>setProducts(products.filter(p=>p.id!==product.id))} className="text-red-600 hover:text-red-800"><Trash2 size={18}/></button>
                           </div>
                         </td>
@@ -884,6 +1043,253 @@ export default function JantecPortal() {
                 </table>
               )}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'suppliers' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Suppliers & Inventory</h2>
+              <div className="flex space-x-3">
+                <button onClick={()=>{setEditingSupplier(null);setSupplierForm({name:'',email:'',phone:'',address:'',city:'',province:'',postalCode:'',contactPerson:''});setShowSupplierForm(true);}} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center space-x-2">
+                  <Plus size={20}/><span>Add Supplier</span>
+                </button>
+                <button onClick={()=>{if(suppliers.length===0||products.length===0){alert('Please add at least one supplier and one product first.');return;}setEditingPurchaseOrder(null);setPurchaseOrderForm({supplierId:'',items:[],notes:'',expectedDate:''});setShowPurchaseOrderForm(true);}} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center space-x-2">
+                  <TrendingUp size={20}/><span>New Purchase Order</span>
+                </button>
+              </div>
+            </div>
+
+            {showSupplierForm && (
+              <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <h3 className="text-xl font-semibold mb-4">{editingSupplier?'Edit Supplier':'New Supplier'}</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block text-sm font-medium mb-2">Supplier Name *</label><input type="text" value={supplierForm.name} onChange={(e)=>setSupplierForm({...supplierForm,name:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="ABC Distributors"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Email *</label><input type="email" value={supplierForm.email} onChange={(e)=>setSupplierForm({...supplierForm,email:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="supplier@example.com"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Phone</label><input type="tel" inputMode="numeric" value={supplierForm.phone} onChange={(e)=>setSupplierForm({...supplierForm,phone:formatPhoneNumber(e.target.value)})} className="w-full px-3 py-2 border rounded" placeholder="(514) 555-0100"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Contact Person</label><input type="text" value={supplierForm.contactPerson} onChange={(e)=>setSupplierForm({...supplierForm,contactPerson:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="John Doe"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Address</label><input type="text" value={supplierForm.address} onChange={(e)=>setSupplierForm({...supplierForm,address:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="123 Supply St"/></div>
+                  <div><label className="block text-sm font-medium mb-2">City</label><input type="text" value={supplierForm.city} onChange={(e)=>setSupplierForm({...supplierForm,city:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="Montreal"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Province</label><input type="text" value={supplierForm.province} onChange={(e)=>setSupplierForm({...supplierForm,province:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="QC"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Postal Code</label><input type="text" value={supplierForm.postalCode} onChange={(e)=>setSupplierForm({...supplierForm,postalCode:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="H1A 1A1"/></div>
+                </div>
+                <div className="flex space-x-3 mt-4">
+                  <button onClick={handleAddSupplier} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded">{editingSupplier?'Update':'Add'} Supplier</button>
+                  <button onClick={()=>{setShowSupplierForm(false);setEditingSupplier(null);}} className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {showPurchaseOrderForm && (
+              <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <h3 className="text-xl font-semibold mb-4">{editingPurchaseOrder?'Edit Purchase Order':'New Purchase Order'}</h3>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Select Supplier</label>
+                    <select value={purchaseOrderForm.supplierId} onChange={(e)=>setPurchaseOrderForm({...purchaseOrderForm,supplierId:e.target.value})} className="w-full px-3 py-2 border rounded">
+                      <option value="">Choose a supplier...</option>
+                      {suppliers.map(supplier=>(<option key={supplier.id} value={supplier.id}>{supplier.name}</option>))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Expected Delivery Date</label>
+                    <input type="date" value={purchaseOrderForm.expectedDate} onChange={(e)=>setPurchaseOrderForm({...purchaseOrderForm,expectedDate:e.target.value})} className="w-full px-3 py-2 border rounded"/>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 mb-4">
+                  <h4 className="font-semibold mb-3">Add Products</h4>
+                  <div className="flex space-x-3 mb-4">
+                    <div className="flex-1">
+                      <select value={currentPOItem.productId} onChange={(e)=>setCurrentPOItem({...currentPOItem,productId:e.target.value})} className="w-full px-3 py-2 border rounded">
+                        <option value="">Select product...</option>
+                        {products.map(product=>(<option key={product.id} value={product.id}>{product.name} (SKU: {product.sku})</option>))}
+                      </select>
+                    </div>
+                    <div className="w-32">
+                      <input type="number" placeholder="Quantity" value={currentPOItem.quantity} onChange={(e)=>setCurrentPOItem({...currentPOItem,quantity:e.target.value})} className="w-full px-3 py-2 border rounded"/>
+                    </div>
+                    <div className="w-32">
+                      <input type="number" step="0.01" placeholder="Cost ($)" value={currentPOItem.cost} onChange={(e)=>setCurrentPOItem({...currentPOItem,cost:e.target.value})} className="w-full px-3 py-2 border rounded"/>
+                    </div>
+                    <button onClick={handleAddItemToPO} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Add</button>
+                  </div>
+
+                  {purchaseOrderForm.items.length>0 && (
+                    <table className="w-full mb-4">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-4 py-2 text-left">Product</th>
+                          <th className="px-4 py-2 text-left">Quantity</th>
+                          <th className="px-4 py-2 text-left">Cost</th>
+                          <th className="px-4 py-2 text-left">Total</th>
+                          <th className="px-4 py-2"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {purchaseOrderForm.items.map((item,index)=>(
+                          <tr key={index} className="border-b">
+                            <td className="px-4 py-2">{item.name}</td>
+                            <td className="px-4 py-2">{item.quantity}</td>
+                            <td className="px-4 py-2">${parseFloat(item.cost).toFixed(2)}</td>
+                            <td className="px-4 py-2">${item.total.toFixed(2)}</td>
+                            <td className="px-4 py-2">
+                              <button onClick={()=>setPurchaseOrderForm({...purchaseOrderForm,items:purchaseOrderForm.items.filter((_,i)=>i!==index)})} className="text-red-600 hover:text-red-800">
+                                <Trash2 size={16}/>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="font-semibold">
+                          <td colSpan="3" className="px-4 py-2 text-right">Total:</td>
+                          <td className="px-4 py-2">${purchaseOrderForm.items.reduce((sum,item)=>sum+item.total,0).toFixed(2)}</td>
+                          <td></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">Notes (Optional)</label>
+                  <textarea value={purchaseOrderForm.notes} onChange={(e)=>setPurchaseOrderForm({...purchaseOrderForm,notes:e.target.value})} className="w-full px-3 py-2 border rounded" rows="3" placeholder="Additional notes or special instructions..."/>
+                </div>
+
+                <div className="flex space-x-3">
+                  <button onClick={editingPurchaseOrder?updatePurchaseOrder:createPurchaseOrder} disabled={!purchaseOrderForm.supplierId||purchaseOrderForm.items.length===0} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    {editingPurchaseOrder?'Update':'Create'} Purchase Order
+                  </button>
+                  <button onClick={()=>{setShowPurchaseOrderForm(false);setEditingPurchaseOrder(null);setPurchaseOrderForm({supplierId:'',items:[],notes:'',expectedDate:''});}} className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white rounded-lg shadow">
+                <div className="bg-gray-800 text-white px-6 py-3">
+                  <h3 className="font-semibold">Suppliers</h3>
+                </div>
+                {suppliers.length===0?(
+                  <div className="p-12 text-center text-gray-500">
+                    <Truck size={48} className="mx-auto mb-4 opacity-50"/>
+                    <p>No suppliers yet. Click Add Supplier to get started.</p>
+                  </div>
+                ):(
+                  <div className="overflow-auto max-h-96">
+                    <table className="w-full">
+                      <thead className="bg-gray-100 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-sm">Name</th>
+                          <th className="px-4 py-2 text-left text-sm">Contact</th>
+                          <th className="px-4 py-2 text-left text-sm">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {suppliers.map((supplier)=>(
+                          <tr key={supplier.id} className="border-b hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <div className="font-medium">{supplier.name}</div>
+                              <div className="text-xs text-gray-500">{supplier.city}, {supplier.province}</div>
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <div>{supplier.email}</div>
+                              <div className="text-gray-500">{supplier.phone}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex space-x-2">
+                                <button onClick={()=>{setEditingSupplier(supplier);setSupplierForm(supplier);setShowSupplierForm(true);}} className="text-blue-600 hover:text-blue-800"><Edit2 size={16}/></button>
+                                <button onClick={()=>setSuppliers(suppliers.filter(s=>s.id!==supplier.id))} className="text-red-600 hover:text-red-800"><Trash2 size={16}/></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white rounded-lg shadow">
+                <div className="bg-gray-800 text-white px-6 py-3">
+                  <h3 className="font-semibold">Purchase Orders</h3>
+                </div>
+                {purchaseOrders.length===0?(
+                  <div className="p-12 text-center text-gray-500">
+                    <TrendingUp size={48} className="mx-auto mb-4 opacity-50"/>
+                    <p>No purchase orders yet. Create one to track incoming inventory.</p>
+                  </div>
+                ):(
+                  <div className="overflow-auto max-h-96">
+                    <table className="w-full">
+                      <thead className="bg-gray-100 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-sm">PO #</th>
+                          <th className="px-4 py-2 text-left text-sm">Supplier</th>
+                          <th className="px-4 py-2 text-left text-sm">Total</th>
+                          <th className="px-4 py-2 text-left text-sm">Status</th>
+                          <th className="px-4 py-2 text-left text-sm">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {purchaseOrders.map((po)=>(
+                          <tr key={po.id} className="border-b hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-sm">{po.poNumber}</div>
+                              <div className="text-xs text-gray-500">{po.date}</div>
+                            </td>
+                            <td className="px-4 py-3 text-sm">{po.supplier.name}</td>
+                            <td className="px-4 py-3 text-sm font-semibold">${po.total.toFixed(2)}</td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${po.status==='Pending'?'bg-yellow-100 text-yellow-800':'bg-green-100 text-green-800'}`}>
+                                {po.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex space-x-1">
+                                {po.status==='Pending' && (
+                                  <>
+                                    <button onClick={()=>handleEditPurchaseOrder(po)} className="text-blue-600 hover:text-blue-800" title="Edit"><Edit2 size={16}/></button>
+                                    <button onClick={()=>receivePurchaseOrder(po.id)} className="text-green-600 hover:text-green-800" title="Receive"><CheckCircle size={16}/></button>
+                                  </>
+                                )}
+                                <button onClick={()=>deletePurchaseOrder(po.id)} className="text-red-600 hover:text-red-800" title="Delete"><Trash2 size={16}/></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {products.length > 0 && (
+              <div className="mt-6 bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold mb-4">Low Stock Alert</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {products.filter(p => (p.quantity || 0) <= (p.reorderLevel || 10)).map(product => (
+                    <div key={product.id} className="border border-red-200 bg-red-50 rounded p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-semibold text-red-900">{product.name}</div>
+                          <div className="text-sm text-red-700">SKU: {product.sku}</div>
+                          <div className="text-sm text-red-600 mt-2">
+                            Stock: <span className="font-bold">{product.quantity || 0}</span> / Reorder at: {product.reorderLevel || 10}
+                          </div>
+                        </div>
+                        <Package size={24} className="text-red-400"/>
+                      </div>
+                    </div>
+                  ))}
+                  {products.filter(p => (p.quantity || 0) <= (p.reorderLevel || 10)).length === 0 && (
+                    <div className="col-span-3 text-center text-gray-500 py-4">
+                      All products are well stocked!
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
