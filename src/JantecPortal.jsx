@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, FileText, Users, Package, Download, ShoppingCart, CheckCircle, Eye, Truck, TrendingUp } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, Users, Package, Download, ShoppingCart, CheckCircle, Eye, Truck, TrendingUp, MoreVertical, Info } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 
 export default function JantecPortal() {
@@ -18,12 +18,15 @@ export default function JantecPortal() {
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [showPurchaseOrderForm, setShowPurchaseOrderForm] = useState(false);
+  const [showSupplierDetails, setShowSupplierDetails] = useState(false);
   const [previewInvoice, setPreviewInvoice] = useState(null);
+  const [viewingSupplier, setViewingSupplier] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [editingOrder, setEditingOrder] = useState(null);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [editingPurchaseOrder, setEditingPurchaseOrder] = useState(null);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
 
   const [businessInfo, setBusinessInfo] = useState({ name: 'JANTEC', address: '', phone: '', email: '' });
   const [productForm, setProductForm] = useState({ name: '', category: 'Sports & Outdoor', description: '', price: '', sku: '', quantity: '0', reorderLevel: '10' });
@@ -656,6 +659,92 @@ export default function JantecPortal() {
         </div>
       )}
 
+      {showSupplierDetails && viewingSupplier && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold flex items-center space-x-2">
+                <Truck size={24} className="text-red-600"/>
+                <span>Supplier Details</span>
+              </h3>
+              <button onClick={() => setShowSupplierDetails(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="col-span-2 bg-red-50 border-l-4 border-red-600 p-4 rounded">
+                <h4 className="text-xl font-bold text-red-900 mb-1">{viewingSupplier.name}</h4>
+                <p className="text-sm text-red-600">Supplier Information</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Contact Person</label>
+                <p className="text-gray-900 font-medium">{viewingSupplier.contactPerson || 'N/A'}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Email Address</label>
+                <p className="text-gray-900 font-medium">{viewingSupplier.email}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Phone Number</label>
+                <p className="text-gray-900 font-medium">{viewingSupplier.phone || 'N/A'}</p>
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-500 mb-1">Address</label>
+                <p className="text-gray-900 font-medium">
+                  {viewingSupplier.address || 'N/A'}
+                  {viewingSupplier.city && viewingSupplier.province && (
+                    <><br />{viewingSupplier.city}, {viewingSupplier.province} {viewingSupplier.postalCode}</>
+                  )}
+                </p>
+              </div>
+
+              <div className="col-span-2 border-t pt-4 mt-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">Purchase Order Statistics</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-3 rounded">
+                    <p className="text-sm text-gray-600">Total Orders</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {purchaseOrders.filter(po => po.supplier.id === viewingSupplier.id).length}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded">
+                    <p className="text-sm text-gray-600">Pending Orders</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {purchaseOrders.filter(po => po.supplier.id === viewingSupplier.id && po.status === 'Pending').length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setEditingSupplier(viewingSupplier);
+                  setSupplierForm(viewingSupplier);
+                  setShowSupplierDetails(false);
+                  setShowSupplierForm(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded flex items-center space-x-2"
+              >
+                <Edit2 size={16}/>
+                <span>Edit Supplier</span>
+              </button>
+              <button onClick={() => setShowSupplierDetails(false)} className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto">
           <div className="flex space-x-1">
@@ -1196,9 +1285,65 @@ export default function JantecPortal() {
                               <div className="text-gray-500">{supplier.phone}</div>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="flex space-x-2">
-                                <button onClick={()=>{setEditingSupplier(supplier);setSupplierForm(supplier);setShowSupplierForm(true);}} className="text-blue-600 hover:text-blue-800"><Edit2 size={16}/></button>
-                                <button onClick={()=>setSuppliers(suppliers.filter(s=>s.id!==supplier.id))} className="text-red-600 hover:text-red-800"><Trash2 size={16}/></button>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => {
+                                    setViewingSupplier(supplier);
+                                    setShowSupplierDetails(true);
+                                  }}
+                                  className="text-blue-600 hover:text-blue-800 flex items-center space-x-1 px-2 py-1 rounded hover:bg-blue-50"
+                                  title="View Details"
+                                >
+                                  <Info size={16}/>
+                                  <span className="text-xs">View</span>
+                                </button>
+
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setOpenDropdownId(openDropdownId === supplier.id ? null : supplier.id)}
+                                    className="text-gray-600 hover:text-gray-800 p-1 rounded hover:bg-gray-100"
+                                    title="More options"
+                                  >
+                                    <MoreVertical size={16}/>
+                                  </button>
+
+                                  {openDropdownId === supplier.id && (
+                                    <>
+                                      <div
+                                        className="fixed inset-0 z-10"
+                                        onClick={() => setOpenDropdownId(null)}
+                                      />
+                                      <div className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg border border-gray-200 z-20">
+                                        <div className="py-1">
+                                          <button
+                                            onClick={() => {
+                                              setEditingSupplier(supplier);
+                                              setSupplierForm(supplier);
+                                              setShowSupplierForm(true);
+                                              setOpenDropdownId(null);
+                                            }}
+                                            className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50"
+                                          >
+                                            <Edit2 size={14}/>
+                                            <span>Edit</span>
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              if(window.confirm(`Are you sure you want to delete ${supplier.name}? This action cannot be undone.`)) {
+                                                setSuppliers(suppliers.filter(s=>s.id!==supplier.id));
+                                              }
+                                              setOpenDropdownId(null);
+                                            }}
+                                            className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                          >
+                                            <Trash2 size={14}/>
+                                            <span>Delete</span>
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             </td>
                           </tr>
