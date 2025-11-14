@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, FileText, Users, Package, Download, ShoppingCart, CheckCircle, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, Users, Package, Download, ShoppingCart, CheckCircle, Eye, Truck } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 
 export default function JantecPortal() {
   const [activeTab, setActiveTab] = useState('products');
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
   const [showInvoiceSettings, setShowInvoiceSettings] = useState(false);
@@ -17,11 +19,13 @@ export default function JantecPortal() {
   const [previewInvoice, setPreviewInvoice] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [editingSupplier, setEditingSupplier] = useState(null);
   const [editingOrder, setEditingOrder] = useState(null);
 
   const [businessInfo, setBusinessInfo] = useState({ name: 'JANTEC', address: '', phone: '', email: '' });
   const [productForm, setProductForm] = useState({ name: '', category: 'Sports & Outdoor', description: '', price: '', sku: '' });
   const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '', shipToAddress: '', shipToCity: '', shipToProvince: '', shipToPostalCode: '', shipToEmail: '', shipToPhone: '', sameAsBilling: false });
+  const [supplierForm, setSupplierForm] = useState({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '', contactPerson: '', website: '' });
   const [orderForm, setOrderForm] = useState({ customerId: '', items: [], notes: '' });
   const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '' });
   const [invoiceSettings, setInvoiceSettings] = useState({ orderId: null, taxRate: '13', paymentTerms: 'Net 30' });
@@ -30,12 +34,14 @@ export default function JantecPortal() {
   useEffect(() => {
     const savedProducts = localStorage.getItem('jantec-products');
     const savedCustomers = localStorage.getItem('jantec-customers');
+    const savedSuppliers = localStorage.getItem('jantec-suppliers');
     const savedOrders = localStorage.getItem('jantec-orders');
     const savedInvoices = localStorage.getItem('jantec-invoices');
     const savedBusiness = localStorage.getItem('jantec-business');
 
     if (savedProducts) setProducts(JSON.parse(savedProducts));
     if (savedCustomers) setCustomers(JSON.parse(savedCustomers));
+    if (savedSuppliers) setSuppliers(JSON.parse(savedSuppliers));
     if (savedOrders) setOrders(JSON.parse(savedOrders));
     if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
     if (savedBusiness) setBusinessInfo(JSON.parse(savedBusiness));
@@ -49,6 +55,10 @@ export default function JantecPortal() {
   useEffect(() => {
     localStorage.setItem('jantec-customers', JSON.stringify(customers));
   }, [customers]);
+
+  useEffect(() => {
+    localStorage.setItem('jantec-suppliers', JSON.stringify(suppliers));
+  }, [suppliers]);
 
   useEffect(() => {
     localStorage.setItem('jantec-orders', JSON.stringify(orders));
@@ -122,6 +132,22 @@ export default function JantecPortal() {
     }
     setCustomerForm({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '', shipToAddress: '', shipToCity: '', shipToProvince: '', shipToPostalCode: '', shipToEmail: '', shipToPhone: '', sameAsBilling: false });
     setShowCustomerForm(false);
+  };
+
+  const handleAddSupplier = () => {
+    if (!supplierForm.name || !supplierForm.email) {
+      alert('Please fill in all required fields (Name, Email)');
+      return;
+    }
+
+    if (editingSupplier) {
+      setSuppliers(suppliers.map(s => s.id === editingSupplier.id ? { ...supplierForm, id: s.id } : s));
+      setEditingSupplier(null);
+    } else {
+      setSuppliers([...suppliers, { ...supplierForm, id: Date.now() }]);
+    }
+    setSupplierForm({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '', contactPerson: '', website: '' });
+    setShowSupplierForm(false);
   };
 
   const handleAddItemToOrder = () => {
@@ -441,7 +467,7 @@ export default function JantecPortal() {
               </div>
               <div>
                 <p className="text-gray-400 text-sm">Distribution Portal</p>
-                <p className="text-gray-500 text-xs">Products: {products.length} | Customers: {customers.length} | Orders: {orders.length}</p>
+                <p className="text-gray-500 text-xs">Products: {products.length} | Customers: {customers.length} | Suppliers: {suppliers.length} | Orders: {orders.length}</p>
               </div>
             </div>
             <button onClick={() => setShowBusinessForm(true)} className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">Settings</button>
@@ -513,6 +539,7 @@ export default function JantecPortal() {
           <div className="flex space-x-1">
             <button onClick={()=>setActiveTab('products')} className={`flex items-center space-x-2 px-6 py-4 font-medium ${activeTab==='products'?'text-red-600 border-b-2 border-red-600':'text-gray-600'}`}><Package size={20}/><span>Products</span></button>
             <button onClick={()=>setActiveTab('customers')} className={`flex items-center space-x-2 px-6 py-4 font-medium ${activeTab==='customers'?'text-red-600 border-b-2 border-red-600':'text-gray-600'}`}><Users size={20}/><span>Customers</span></button>
+            <button onClick={()=>setActiveTab('suppliers')} className={`flex items-center space-x-2 px-6 py-4 font-medium ${activeTab==='suppliers'?'text-red-600 border-b-2 border-red-600':'text-gray-600'}`}><Truck size={20}/><span>Suppliers</span></button>
             <button onClick={()=>setActiveTab('orders')} className={`flex items-center space-x-2 px-6 py-4 font-medium ${activeTab==='orders'?'text-red-600 border-b-2 border-red-600':'text-gray-600'}`}><ShoppingCart size={20}/><span>Orders</span></button>
             <button onClick={()=>setActiveTab('invoices')} className={`flex items-center space-x-2 px-6 py-4 font-medium ${activeTab==='invoices'?'text-red-600 border-b-2 border-red-600':'text-gray-600'}`}><FileText size={20}/><span>Invoices</span></button>
           </div>
@@ -657,6 +684,78 @@ export default function JantecPortal() {
                           <div className="flex space-x-2">
                             <button onClick={()=>{setEditingCustomer(customer);setCustomerForm(customer);setShowCustomerForm(true);}} className="text-blue-600 hover:text-blue-800"><Edit2 size={18}/></button>
                             <button onClick={()=>setCustomers(customers.filter(c=>c.id!==customer.id))} className="text-red-600 hover:text-red-800"><Trash2 size={18}/></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'suppliers' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Supplier Directory</h2>
+              <button onClick={()=>{setEditingSupplier(null);setSupplierForm({name:'',email:'',phone:'',address:'',city:'',province:'',postalCode:'',contactPerson:'',website:''});setShowSupplierForm(true);}} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center space-x-2">
+                <Plus size={20}/><span>Add Supplier</span>
+              </button>
+            </div>
+
+            {showSupplierForm && (
+              <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <h3 className="text-xl font-semibold mb-4">{editingSupplier?'Edit Supplier':'New Supplier'}</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block text-sm font-medium mb-2">Supplier Name *</label><input type="text" value={supplierForm.name} onChange={(e)=>setSupplierForm({...supplierForm,name:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="ABC Supplies Inc."/></div>
+                  <div><label className="block text-sm font-medium mb-2">Email *</label><input type="email" value={supplierForm.email} onChange={(e)=>setSupplierForm({...supplierForm,email:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="sales@supplier.com"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Phone</label><input type="tel" inputMode="numeric" value={supplierForm.phone} onChange={(e)=>setSupplierForm({...supplierForm,phone:formatPhoneNumber(e.target.value)})} className="w-full px-3 py-2 border rounded" placeholder="(514) 555-0100"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Contact Person</label><input type="text" value={supplierForm.contactPerson} onChange={(e)=>setSupplierForm({...supplierForm,contactPerson:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="Jane Smith"/></div>
+                  <div className="col-span-2"><label className="block text-sm font-medium mb-2">Website</label><input type="url" value={supplierForm.website} onChange={(e)=>setSupplierForm({...supplierForm,website:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="https://www.supplier.com"/></div>
+                  <div className="col-span-2"><h4 className="font-semibold text-lg mt-4 mb-2 text-gray-700 border-b pb-2">Address</h4></div>
+                  <div><label className="block text-sm font-medium mb-2">Street Address</label><input type="text" value={supplierForm.address} onChange={(e)=>setSupplierForm({...supplierForm,address:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="123 Supplier Rd"/></div>
+                  <div><label className="block text-sm font-medium mb-2">City</label><input type="text" value={supplierForm.city} onChange={(e)=>setSupplierForm({...supplierForm,city:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="Montreal"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Province</label><input type="text" value={supplierForm.province} onChange={(e)=>setSupplierForm({...supplierForm,province:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="QC"/></div>
+                  <div><label className="block text-sm font-medium mb-2">Postal Code</label><input type="text" value={supplierForm.postalCode} onChange={(e)=>setSupplierForm({...supplierForm,postalCode:e.target.value})} className="w-full px-3 py-2 border rounded" placeholder="H1A 1A1"/></div>
+                </div>
+                <div className="flex space-x-3 mt-4">
+                  <button onClick={handleAddSupplier} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded">{editingSupplier?'Update':'Add'} Supplier</button>
+                  <button onClick={()=>{setShowSupplierForm(false);setEditingSupplier(null);}} className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              {suppliers.length===0?(
+                <div className="p-12 text-center text-gray-500">
+                  <Truck size={48} className="mx-auto mb-4 opacity-50"/>
+                  <p>No suppliers yet. Click Add Supplier to get started.</p>
+                </div>
+              ):(
+                <table className="w-full">
+                  <thead className="bg-gray-800 text-white">
+                    <tr>
+                      <th className="px-6 py-3 text-left">Name</th>
+                      <th className="px-6 py-3 text-left">Contact Person</th>
+                      <th className="px-6 py-3 text-left">Email</th>
+                      <th className="px-6 py-3 text-left">Phone</th>
+                      <th className="px-6 py-3 text-left">Address</th>
+                      <th className="px-6 py-3 text-left">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {suppliers.map((supplier)=>(
+                      <tr key={supplier.id} className="border-b hover:bg-gray-50">
+                        <td className="px-6 py-4 font-medium">{supplier.name}</td>
+                        <td className="px-6 py-4">{supplier.contactPerson}</td>
+                        <td className="px-6 py-4">{supplier.email}</td>
+                        <td className="px-6 py-4">{supplier.phone}</td>
+                        <td className="px-6 py-4 text-sm">{supplier.address}, {supplier.city}, {supplier.province} {supplier.postalCode}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex space-x-2">
+                            <button onClick={()=>{setEditingSupplier(supplier);setSupplierForm(supplier);setShowSupplierForm(true);}} className="text-blue-600 hover:text-blue-800"><Edit2 size={18}/></button>
+                            <button onClick={()=>setSuppliers(suppliers.filter(s=>s.id!==supplier.id))} className="text-red-600 hover:text-red-800"><Trash2 size={18}/></button>
                           </div>
                         </td>
                       </tr>
